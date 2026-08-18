@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Mirror</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="mode-night tone-focused">
+    <div id="ambient-art"></div>
+    <div id="ambient-veil"></div>
+
+    <main id="screen" aria-live="polite">
+        <header class="top-row">
+            <section class="time-block" aria-label="Time and date">
+                <div id="time">--:--</div>
+                <div id="date">Loading</div>
+                <div id="connection-status">connecting</div>
+            </section>
+
+            <section id="weather" aria-label="Weather">
+                <div id="weather-temp">--</div>
+                <div id="weather-extra">-- / --</div>
+                <div id="weather-desc">weather offline</div>
+                <div id="weather-city">Bangalore</div>
+            </section>
+        </header>
+
+        <section class="middle-row">
+            <div class="left-stack">
+                <section id="calendar-panel" class="mirror-panel is-hidden" aria-label="Calendar">
+                    <div class="section-label">Today</div>
+                    <div id="calendar"></div>
+                </section>
+
+                <section id="news-panel" class="mirror-panel is-hidden" aria-label="News">
+                    <div class="section-label">Briefing</div>
+                    <div id="news-ticker-wrap">
+                        <div id="news-ticker"></div>
+                    </div>
+                    <div id="news" style="display:none"></div>
+                </section>
+            </div>
+
+            <div class="right-stack">
+                <section id="insight-panel" class="mirror-panel is-hidden" aria-label="Personal insight">
+                    <div class="section-label">Pattern</div>
+                    <div id="insight"></div>
+                </section>
+
+                <section id="summary-panel" class="mirror-panel is-hidden" aria-label="Weekly summary">
+                    <div class="section-label">Week</div>
+                    <div id="weekly-summary"></div>
+                </section>
+
+                <section id="system-panel" class="mirror-panel system-panel is-hidden" aria-label="System health">
+                    <div class="section-label">System</div>
+                    <div id="health-summary"></div>
+                    <div id="health-items"></div>
+                </section>
+
+                <section id="settings-panel" class="mirror-panel system-panel is-hidden" aria-label="Settings">
+                    <div class="section-label">Settings</div>
+                    <div id="settings-items"></div>
+                </section>
+
+                <section id="diagnostics-panel" class="mirror-panel system-panel is-hidden" aria-label="Diagnostics">
+                    <div class="section-label">Diagnostics</div>
+                    <div id="diagnostics-items"></div>
+                </section>
+
+                <section id="tasks-container" class="mirror-panel is-hidden" aria-label="Tasks">
+                    <div class="section-label">Reminders</div>
+                    <div id="tasks"></div>
+                </section>
+
+                <section id="workout-container" class="mirror-panel training-panel is-hidden" aria-label="Workout">
+                    <div class="section-label">Training mode</div>
+                    <div id="workout-exercise">Curls</div>
+                    <div class="workout-grid">
+                        <div>
+                            <div class="metric-value" id="workout-reps">0</div>
+                            <div class="metric-label">reps</div>
+                        </div>
+                        <div>
+                            <div class="metric-value" id="workout-timer">00:00</div>
+                            <div class="metric-label">time</div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </section>
+
+        <footer class="bottom-row">
+            <section id="spotify-container" class="spotify is-hidden" aria-label="Now playing">
+                <img id="spotify-art" class="is-empty" alt="">
+                <div class="spotify-copy">
+                    <div id="spotify-title">Title</div>
+                    <div id="spotify-artist">Artist</div>
+                </div>
+            </section>
+
+            <section class="presence-copy" aria-label="Mirror message">
+                <div id="assistant-overlay" class="assistant-orb" aria-hidden="true">
+                    <span></span>
+                </div>
+                <div id="assistant-state"></div>
+                <div id="greeting">Smart Mirror</div>
+                <div id="quote">Waiting quietly.</div>
+            </section>
+        </footer>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

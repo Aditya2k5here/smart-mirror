@@ -1,0 +1,15 @@
+opencv-python
+face_recognition
+deepface
+mediapipe
+websockets
+pyttsx3
+SpeechRecognition
+PyAudio
+openai
+spotipy
+requests
+python-dotenv
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib

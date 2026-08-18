@@ -1,0 +1,13 @@
+.venv/
+.venv311/
+backend/.venv/
+backend/.venv311/
+__pycache__/
+*.pyc
+backend/.env
+backend/credentials.json
+backend/token.json
+backend/data/*.db
+backend/data/.spotify_cache
+backend/data/known_faces/*
+smart-mirror-ui-smoke.png

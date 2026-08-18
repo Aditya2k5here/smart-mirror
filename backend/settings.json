@@ -1,0 +1,20 @@
+{
+  "camera_index": 0,
+  "camera_width": 1280,
+  "camera_height": 720,
+  "camera_preview": false,
+  "target_fps": 24,
+  "broadcast_hz": 4,
+  "weather_city": "Bangalore",
+  "ai_router_mode": "auto",
+  "face_recognition_interval_seconds": 2.0,
+  "emotion_interval_seconds": 6.0,
+  "posture_interval_seconds": 0.9,
+  "spotify_interval_seconds": 5.0,
+  "weather_interval_seconds": 600.0,
+  "calendar_interval_seconds": 300.0,
+  "news_interval_seconds": 900.0,
+  "tasks_interval_seconds": 2.0,
+  "show_health_when_idle": true,
+  "show_diagnostics": false
+}
