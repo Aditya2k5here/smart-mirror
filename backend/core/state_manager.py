@@ -3,9 +3,16 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
+import time
 
 
 NEGATIVE_EMOTIONS = {"sad", "angry", "fear", "disgust"}
+
+# State that describes the world, not the person: kept when someone walks away.
+_PERSISTENT = (
+    "weather", "events", "news", "track", "health", "diagnostics", "settings", "show_settings", "show_diagnostics",
+    "privacy", "night_mode", "demo", "assistant_name", "capabilities", "timers",
+)
 
 
 @dataclass
@@ -38,6 +45,23 @@ class MirrorState:
     session_emotions: list[str] = field(default_factory=list)
     session_slouch_count: int = 0
     sequence: int = 0
+    # --- personal assistant layer ---
+    personal: dict[str, Any] = field(default_factory=dict)
+    caption: dict[str, Any] = field(default_factory=lambda: {"user": "", "mirror": "", "at": 0})
+    nudge: dict[str, Any] | None = None
+    timers: list[dict[str, Any]] = field(default_factory=list)
+    routine: dict[str, Any] = field(default_factory=lambda: {"active": False})
+    breathing: dict[str, Any] = field(default_factory=lambda: {"active": False})
+    focus: dict[str, Any] = field(default_factory=lambda: {"panel": "none"})
+    celebrate: dict[str, Any] | None = None
+    privacy: bool = False
+    night_mode: bool = False
+    alarm: bool = False
+    enrolling: bool = False
+    demo: bool = False
+    assistant_name: str = "Mirror"
+    capabilities: dict[str, Any] = field(default_factory=dict)
+    conversation_open: bool = False
 
 
 class StateManager:
@@ -66,7 +90,10 @@ class StateManager:
             "emotions": list(self.state.session_emotions),
             "slouch_count": self.state.session_slouch_count,
         }
-        self.state = MirrorState()
+        kept = {key: getattr(self.state, key) for key in _PERSISTENT}
+        sequence = self.state.sequence
+        self.state = MirrorState(**kept)
+        self.state.sequence = sequence
         self.mark_dirty()
         return session
 
@@ -122,7 +149,7 @@ class StateManager:
             return "training"
         if self.state.stress_score >= 0.55 or self.state.emotion in NEGATIVE_EMOTIONS:
             return "calm"
-        if self.day_part() == "night":
+        if self.day_part() == "night" or self.state.night_mode:
             return "rest"
         return "focused"
 
@@ -130,37 +157,21 @@ class StateManager:
         tone = self.tone()
         day_part = self.day_part()
         if self.state.workout.get("active"):
-            return {
-                "name": "training",
-                "density": "focused",
-                "message": "Training mode is ready.",
-            }
+            return {"name": "training", "density": "focused", "message": "Training mode is ready."}
+        if self.state.breathing.get("active"):
+            return {"name": "calm", "density": "minimal", "message": "Slow down. Breathe."}
+        if self.state.night_mode:
+            return {"name": "night", "density": "quiet", "message": "Sleep well."}
         if self.state.stress_score >= 0.55:
-            return {
-                "name": "calm",
-                "density": "minimal",
-                "message": "Keep the pace gentle today.",
-            }
+            return {"name": "calm", "density": "minimal", "message": "Keep the pace gentle today."}
         if day_part == "morning":
-            return {
-                "name": "morning",
-                "density": "briefing",
-                "message": "Start clean. Move deliberately.",
-            }
+            return {"name": "morning", "density": "briefing", "message": "Start clean. Move deliberately."}
         if day_part == "night":
-            return {
-                "name": "night",
-                "density": "quiet",
-                "message": "Soft landing for the day.",
-            }
-        return {
-            "name": tone,
-            "density": "balanced",
-            "message": "You are on track.",
-        }
+            return {"name": "night", "density": "quiet", "message": "Soft landing for the day."}
+        return {"name": tone, "density": "balanced", "message": "You are on track."}
 
     def ambient_message(self) -> str:
-        name = "" if self.state.name == "Unknown" else self.state.name
+        name = "" if self.state.name in ("Unknown", "Guest") else self.state.name.split()[0]
         emotion = self.state.emotion
         day_part = self.day_part()
 
@@ -181,35 +192,53 @@ class StateManager:
         return "You are on track."
 
     def snapshot(self) -> dict[str, Any]:
+        s = self.state
         return {
-            "present": self.state.present,
-            "emotion": self.state.emotion,
-            "posture": self.state.posture,
-            "name": self.state.name,
-            "events": self.state.events,
-            "news": self.state.news,
-            "track": self.state.track,
-            "tasks": self.state.tasks,
-            "weather": self.state.weather,
-            "workout": self.state.workout,
-            "assistant_listening": self.state.assistant_listening,
-            "status": self.state.status,
-            "voice_state": self.state.voice_state,
-            "insight": self.state.insight,
-            "weekly_summary": self.state.weekly_summary,
-            "health": self.state.health,
-            "diagnostics": self.state.diagnostics,
-            "settings": self.state.settings,
-            "show_settings": self.state.show_settings,
-            "show_diagnostics": self.state.show_diagnostics,
+            "present": s.present,
+            "emotion": s.emotion,
+            "posture": s.posture,
+            "name": s.name,
+            "events": s.events,
+            "news": s.news,
+            "track": s.track,
+            "tasks": s.tasks,
+            "weather": s.weather,
+            "workout": s.workout,
+            "assistant_listening": s.assistant_listening,
+            "status": s.status,
+            "voice_state": s.voice_state,
+            "insight": s.insight,
+            "weekly_summary": s.weekly_summary,
+            "health": s.health,
+            "diagnostics": s.diagnostics,
+            "settings": s.settings,
+            "show_settings": s.show_settings,
+            "show_diagnostics": s.show_diagnostics,
+            "personal": s.personal,
+            "caption": s.caption,
+            "nudge": s.nudge,
+            "timers": s.timers,
+            "routine": s.routine,
+            "breathing": s.breathing,
+            "focus": s.focus,
+            "celebrate": s.celebrate,
+            "privacy": s.privacy,
+            "night_mode": s.night_mode,
+            "alarm": s.alarm,
+            "enrolling": s.enrolling,
+            "demo": s.demo,
+            "assistant_name": s.assistant_name,
+            "capabilities": s.capabilities,
+            "conversation_open": s.conversation_open,
             "context": {
                 "day_part": self.day_part(),
                 "tone": self.tone(),
                 "ambient_message": self.ambient_message(),
-                "stress_score": round(self.state.stress_score, 2),
-                "posture_score": round(self.state.posture_score, 2),
+                "stress_score": round(s.stress_score, 2),
+                "posture_score": round(s.posture_score, 2),
                 "scene": self.scene(),
             },
-            "sequence": self.state.sequence,
+            "sequence": s.sequence,
+            "server_time_ms": int(time.time() * 1000),
             "updated_at": datetime.now().isoformat(timespec="seconds"),
         }

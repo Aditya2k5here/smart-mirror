@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import logging
-import math
+import time
 
 import cv2
+
+from workout.exercises import (
+    RepCounter, angle as calculate_angle, exercise_title, find_exercise, normalize_exercise,
+)
 
 try:
     import mediapipe as mp
@@ -13,128 +17,94 @@ except ImportError:
     mp = None
     MEDIAPIPE_AVAILABLE = False
 
+__all__ = ["WorkoutService", "workout_service", "normalize_exercise", "calculate_angle"]
+
 
 class WorkoutService:
     def __init__(self) -> None:
         self.active = False
         self.exercise = "curls"
-        self.reps = 0
-        self.stage = "down"
+        self.counter = RepCounter("curls")
+        self.started_at: float | None = None
         self.pose = None
         self.mp_pose = None
 
         if MEDIAPIPE_AVAILABLE:
-            self.mp_pose = mp.solutions.pose
-            self.pose = self.mp_pose.Pose(
-                min_detection_confidence=0.5,
-                min_tracking_confidence=0.5,
-            )
+            try:
+                self.mp_pose = mp.solutions.pose
+                self.pose = self.mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+            except Exception:
+                logging.warning("MediaPipe pose init failed; workout tracking is disabled.")
         else:
             logging.warning("MediaPipe is not installed; workout tracking is disabled.")
+
+    @property
+    def reps(self) -> int:
+        return self.counter.reps
+
+    @property
+    def stage(self) -> str:
+        return self.counter.stage
+
+    @property
+    def tracking_available(self) -> bool:
+        return self.pose is not None
 
     def start(self, exercise: str = "curls") -> None:
         self.active = True
         self.exercise = normalize_exercise(exercise)
-        self.reps = 0
-        self.stage = "down"
+        self.counter = RepCounter(self.exercise)
+        self.started_at = time.monotonic()
 
-    def stop(self) -> None:
+    def stop(self) -> dict[str, object]:
+        """End the session and return what happened (for logging)."""
+        summary = {
+            "exercise": self.exercise,
+            "reps": self.counter.reps,
+            "duration_seconds": int(time.monotonic() - self.started_at) if self.started_at else 0,
+            "hold_seconds": int(self.counter.held),
+        }
         self.active = False
+        self.started_at = None
+        return summary
 
     def process_frame(self, frame) -> int:
+        """Returns the number of reps newly counted in this frame (0 or 1)."""
         if not self.active or not self.pose:
-            return self.reps
-
+            return 0
         try:
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = self.pose.process(rgb)
         except Exception:
             logging.exception("Workout pose processing failed.")
-            return self.reps
-
+            return 0
         if not results.pose_landmarks:
-            return self.reps
-
-        landmarks = results.pose_landmarks.landmark
+            return 0
         try:
-            if self.exercise == "squats":
-                self._process_squat(landmarks)
-            elif self.exercise == "pushups":
-                self._process_pushup(landmarks)
-            elif self.exercise == "posture":
-                self.stage = "monitoring"
-            else:
-                self._process_curl(landmarks)
+            return int(self.counter.update(self._landmarks(results.pose_landmarks.landmark)))
         except Exception:
             logging.exception("Workout rep calculation failed.")
+            return 0
 
-        return self.reps
+    def _landmarks(self, landmarks) -> dict[str, tuple[float, float, float]]:
+        out = {}
+        for member in self.mp_pose.PoseLandmark:
+            lm = landmarks[member.value]
+            out[member.name.lower()] = (lm.x, lm.y, lm.visibility)
+        return out
 
     def snapshot(self, timer: str) -> dict[str, object]:
         return {
             "active": self.active,
             "exercise": self.exercise,
-            "reps": self.reps,
+            "title": exercise_title(self.exercise),
+            "reps": self.counter.reps,
             "timer": timer,
-            "stage": self.stage,
+            "stage": self.counter.stage,
+            "hold": int(self.counter.held) if self.exercise == "plank" else None,
+            "feedback": self.counter.feedback,
+            "tracking": self.tracking_available,
         }
-
-    def _process_curl(self, landmarks) -> None:
-        shoulder = landmarks[self.mp_pose.PoseLandmark.RIGHT_SHOULDER.value]
-        elbow = landmarks[self.mp_pose.PoseLandmark.RIGHT_ELBOW.value]
-        wrist = landmarks[self.mp_pose.PoseLandmark.RIGHT_WRIST.value]
-        angle = calculate_angle(shoulder, elbow, wrist)
-
-        if angle > 155:
-            self.stage = "down"
-        elif angle < 35 and self.stage == "down":
-            self.stage = "up"
-            self.reps += 1
-
-    def _process_squat(self, landmarks) -> None:
-        hip = landmarks[self.mp_pose.PoseLandmark.RIGHT_HIP.value]
-        knee = landmarks[self.mp_pose.PoseLandmark.RIGHT_KNEE.value]
-        ankle = landmarks[self.mp_pose.PoseLandmark.RIGHT_ANKLE.value]
-        angle = calculate_angle(hip, knee, ankle)
-
-        if angle > 155:
-            self.stage = "up"
-        elif angle < 95 and self.stage == "up":
-            self.stage = "down"
-            self.reps += 1
-
-    def _process_pushup(self, landmarks) -> None:
-        shoulder = landmarks[self.mp_pose.PoseLandmark.RIGHT_SHOULDER.value]
-        elbow = landmarks[self.mp_pose.PoseLandmark.RIGHT_ELBOW.value]
-        wrist = landmarks[self.mp_pose.PoseLandmark.RIGHT_WRIST.value]
-        angle = calculate_angle(shoulder, elbow, wrist)
-
-        if angle > 155:
-            self.stage = "up"
-        elif angle < 85 and self.stage == "up":
-            self.stage = "down"
-            self.reps += 1
-
-
-def normalize_exercise(raw: str) -> str:
-    text = (raw or "").lower()
-    if "squat" in text:
-        return "squats"
-    if "push" in text:
-        return "pushups"
-    if "posture" in text or "mobility" in text:
-        return "posture"
-    return "curls"
-
-
-def calculate_angle(a, b, c) -> float:
-    radians = math.atan2(c.y - b.y, c.x - b.x) - math.atan2(
-        a.y - b.y, a.x - b.x
-    )
-    angle = abs(radians * 180.0 / math.pi)
-    if angle > 180.0:
-        angle = 360 - angle
-    return angle
 
 
 workout_service = WorkoutService()

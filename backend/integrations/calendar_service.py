@@ -58,7 +58,7 @@ class CalendarService:
         for event in events_result.get("items", []):
             start = event["start"].get("dateTime", event["start"].get("date"))
             title = event.get("summary", "No title")
-            events.append({"time": self._format_start(start), "title": title})
+            events.append({"time": self._format_start(start), "title": title, "start": start})
         cache_store.set("calendar_events", events)
         return events
 

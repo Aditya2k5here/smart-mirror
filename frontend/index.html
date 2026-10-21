@@ -6,26 +6,39 @@
     <title>Smart Mirror</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="mode-night tone-focused">
+<body class="mode-night">
     <div id="ambient-art"></div>
     <div id="ambient-veil"></div>
+    <div id="celebrate-layer" aria-hidden="true"></div>
 
     <main id="screen" aria-live="polite">
+        <!-- ===== top ===== -->
         <header class="top-row">
             <section class="time-block" aria-label="Time and date">
                 <div id="time">--:--</div>
                 <div id="date">Loading</div>
-                <div id="connection-status">connecting</div>
+                <div class="chips">
+                    <span id="connection-status" class="chip">connecting</span>
+                    <span id="chip-ai" class="chip is-hidden"></span>
+                    <span id="chip-privacy" class="chip chip-privacy is-hidden">camera off</span>
+                    <span id="chip-demo" class="chip chip-demo is-hidden">demo</span>
+                </div>
             </section>
+
+            <div id="nudge" class="nudge is-hidden" role="status">
+                <span id="nudge-kind"></span>
+                <p id="nudge-text"></p>
+            </div>
 
             <section id="weather" aria-label="Weather">
                 <div id="weather-temp">--</div>
                 <div id="weather-extra">-- / --</div>
                 <div id="weather-desc">weather offline</div>
-                <div id="weather-city">Bangalore</div>
+                <div id="weather-city"></div>
             </section>
         </header>
 
+        <!-- ===== middle ===== -->
         <section class="middle-row">
             <div class="left-stack">
                 <section id="calendar-panel" class="mirror-panel is-hidden" aria-label="Calendar">
@@ -33,24 +46,81 @@
                     <div id="calendar"></div>
                 </section>
 
-                <section id="news-panel" class="mirror-panel is-hidden" aria-label="News">
-                    <div class="section-label">Briefing</div>
-                    <div id="news-ticker-wrap">
-                        <div id="news-ticker"></div>
-                    </div>
-                    <div id="news" style="display:none"></div>
+                <section id="tasks-container" class="mirror-panel is-hidden" aria-label="Reminders">
+                    <div class="section-label">Reminders</div>
+                    <div id="tasks"></div>
+                </section>
+
+                <section id="timers-panel" class="mirror-panel is-hidden" aria-label="Timers">
+                    <div class="section-label">Timers</div>
+                    <div id="timers"></div>
+                </section>
+
+                <section id="habits-panel" class="mirror-panel is-hidden" aria-label="Habits">
+                    <div class="section-label">Habits</div>
+                    <div id="habits"></div>
                 </section>
             </div>
 
+            <div class="center-stage">
+                <div id="presence-hint" class="presence-hint">Step in front of the mirror, or press <kbd>/</kbd> to talk</div>
+            </div>
+
             <div class="right-stack">
+                <section id="goal-panel" class="mirror-panel goal-panel is-hidden" aria-label="Goal">
+                    <div class="section-label"><span id="goal-title">Goal</span><span id="goal-status" class="status-pill"></span></div>
+                    <div class="goal-main">
+                        <div class="goal-ring">
+                            <svg viewBox="0 0 120 120" aria-hidden="true">
+                                <circle class="ring-track" cx="60" cy="60" r="52"></circle>
+                                <circle id="goal-ring-fill" class="ring-fill" cx="60" cy="60" r="52"></circle>
+                            </svg>
+                            <div class="goal-ring-label"><span id="goal-percent">0</span><small>%</small></div>
+                        </div>
+                        <div class="goal-numbers">
+                            <div><span id="goal-current" class="big-number">--</span><span id="goal-unit" class="unit"></span></div>
+                            <div class="goal-sub">target <span id="goal-target">--</span> · <span id="goal-rate"></span></div>
+                        </div>
+                    </div>
+                    <svg id="goal-spark" class="sparkline" viewBox="0 0 300 70" preserveAspectRatio="none" aria-hidden="true"></svg>
+                    <div id="goal-headline" class="goal-headline"></div>
+                </section>
+
+                <section id="today-panel" class="mirror-panel is-hidden" aria-label="Today">
+                    <div class="section-label">Today</div>
+                    <div class="stat-row">
+                        <div class="stat-head"><span>Calories</span><em id="cal-text">0 / 0</em></div>
+                        <div class="bar"><i id="cal-bar"></i></div>
+                    </div>
+                    <div class="stat-row">
+                        <div class="stat-head"><span>Protein</span><em id="protein-text">0 / 0 g</em></div>
+                        <div class="bar bar-protein"><i id="protein-bar"></i></div>
+                    </div>
+                    <div class="stat-row">
+                        <div class="stat-head"><span>Water</span><em id="water-text">0 / 0 ml</em></div>
+                        <div id="water-glasses" class="glasses"></div>
+                    </div>
+                    <div id="today-foot" class="today-foot"></div>
+                </section>
+
+                <section id="memory-panel" class="mirror-panel memory-panel is-hidden" aria-label="Memory">
+                    <div class="section-label">I remember</div>
+                    <div id="memory-fact"></div>
+                </section>
+
                 <section id="insight-panel" class="mirror-panel is-hidden" aria-label="Personal insight">
                     <div class="section-label">Pattern</div>
                     <div id="insight"></div>
                 </section>
 
-                <section id="summary-panel" class="mirror-panel is-hidden" aria-label="Weekly summary">
-                    <div class="section-label">Week</div>
-                    <div id="weekly-summary"></div>
+                <section id="workout-container" class="mirror-panel training-panel is-hidden" aria-label="Workout">
+                    <div class="section-label">Training mode</div>
+                    <div id="workout-exercise">Curls</div>
+                    <div class="workout-grid">
+                        <div><div class="metric-value" id="workout-reps">0</div><div class="metric-label" id="workout-reps-label">reps</div></div>
+                        <div><div class="metric-value" id="workout-timer">00:00</div><div class="metric-label">time</div></div>
+                    </div>
+                    <div id="workout-feedback" class="workout-feedback"></div>
                 </section>
 
                 <section id="system-panel" class="mirror-panel system-panel is-hidden" aria-label="System health">
@@ -58,39 +128,18 @@
                     <div id="health-summary"></div>
                     <div id="health-items"></div>
                 </section>
-
                 <section id="settings-panel" class="mirror-panel system-panel is-hidden" aria-label="Settings">
                     <div class="section-label">Settings</div>
                     <div id="settings-items"></div>
                 </section>
-
                 <section id="diagnostics-panel" class="mirror-panel system-panel is-hidden" aria-label="Diagnostics">
                     <div class="section-label">Diagnostics</div>
                     <div id="diagnostics-items"></div>
                 </section>
-
-                <section id="tasks-container" class="mirror-panel is-hidden" aria-label="Tasks">
-                    <div class="section-label">Reminders</div>
-                    <div id="tasks"></div>
-                </section>
-
-                <section id="workout-container" class="mirror-panel training-panel is-hidden" aria-label="Workout">
-                    <div class="section-label">Training mode</div>
-                    <div id="workout-exercise">Curls</div>
-                    <div class="workout-grid">
-                        <div>
-                            <div class="metric-value" id="workout-reps">0</div>
-                            <div class="metric-label">reps</div>
-                        </div>
-                        <div>
-                            <div class="metric-value" id="workout-timer">00:00</div>
-                            <div class="metric-label">time</div>
-                        </div>
-                    </div>
-                </section>
             </div>
         </section>
 
+        <!-- ===== bottom ===== -->
         <footer class="bottom-row">
             <section id="spotify-container" class="spotify is-hidden" aria-label="Now playing">
                 <img id="spotify-art" class="is-empty" alt="">
@@ -100,16 +149,61 @@
                 </div>
             </section>
 
-            <section class="presence-copy" aria-label="Mirror message">
-                <div id="assistant-overlay" class="assistant-orb" aria-hidden="true">
-                    <span></span>
-                </div>
-                <div id="assistant-state"></div>
+            <section class="presence-copy" aria-label="Mirror">
                 <div id="greeting">Smart Mirror</div>
                 <div id="quote">Waiting quietly.</div>
+                <div id="captions" class="captions">
+                    <p id="caption-user" class="caption-user"></p>
+                    <p id="caption-mirror" class="caption-mirror"></p>
+                </div>
+                <button id="orb" class="orb" type="button" aria-label="Talk to the mirror">
+                    <span class="orb-core"></span><span class="orb-ring"></span><span class="orb-ring r2"></span>
+                </button>
+                <div id="assistant-state"></div>
             </section>
         </footer>
+
+        <div id="news-strip" class="news-strip is-hidden"><div id="news-ticker"></div></div>
     </main>
+
+    <!-- ===== overlays ===== -->
+    <section id="focus" class="focus is-hidden" aria-live="polite">
+        <button id="focus-close" class="focus-close" type="button" aria-label="Close">×</button>
+        <div id="focus-body"></div>
+    </section>
+
+    <section id="breathing" class="breathing is-hidden" aria-label="Breathing exercise">
+        <div class="breath-circle"><div id="breath-fill"></div></div>
+        <div id="breath-label">Inhale</div>
+        <div id="breath-title" class="breath-title"></div>
+    </section>
+
+    <section id="routine" class="routine is-hidden" aria-label="Routine">
+        <div id="routine-title" class="section-label"></div>
+        <div class="routine-ring">
+            <svg viewBox="0 0 160 160" aria-hidden="true">
+                <circle class="ring-track" cx="80" cy="80" r="70"></circle>
+                <circle id="routine-ring-fill" class="ring-fill" cx="80" cy="80" r="70"></circle>
+            </svg>
+            <div id="routine-count" class="routine-count"></div>
+        </div>
+        <p id="routine-text"></p>
+        <div id="routine-steps" class="routine-steps"></div>
+        <div class="routine-actions">
+            <button type="button" data-action="routine_next">Next</button>
+            <button type="button" data-action="routine_stop">Stop</button>
+        </div>
+    </section>
+
+    <div id="alarm" class="alarm is-hidden"><button type="button" data-action="stop_alarm">Timer done · tap to stop</button></div>
+
+    <form id="command" class="command is-hidden" autocomplete="off">
+        <div class="suggestions" id="suggestions"></div>
+        <div class="command-row">
+            <input id="command-input" type="text" maxlength="400" placeholder="Talk to your mirror…  (Enter to send, Esc to close)" aria-label="Message">
+            <button type="submit">Send</button>
+        </div>
+    </form>
 
     <script src="script.js"></script>
 </body>

@@ -146,6 +146,38 @@ class MirrorConfig:
     face_match_tolerance: float
     show_health_when_idle: bool
     show_diagnostics: bool
+    # --- assistant / experience (all optional, sensible defaults) ---
+    http_host: str = "localhost"
+    http_port: int = 8000
+    demo: bool = False
+    assistant_name: str = "Mirror"
+    wake_words: tuple[str, ...] = ("hey mirror", "ok mirror", "okay mirror", "hi mirror", "hello mirror")
+    follow_up_window_seconds: float = 12.0
+    allowed_origins: tuple[str, ...] = ()
+    default_wake_time: str = "07:00"
+    default_bed_time: str = "23:00"
+    proactive: bool = True
+    quiet_nudge_gap_seconds: float = 240.0
+    tts_provider: str = "auto"
+    edge_voice: str = "en-IN-NeerjaNeural"
+    tts_rate: int = 150
+    llm_timeout_seconds: float = 12.0
+    groq_vision_model: str = "meta-llama/llama-4-scout-17b-16e-instruct"
+    openai_api_key: str = ""
+    home_assistant_url: str = ""
+    home_assistant_token: str = ""
+    privacy_on_start: bool = False
+    face_backend: str = "auto"
+    models_dir: Path = Path(".")
+    auto_learn_faces: bool = True
+    units: str = "metric"
+
+
+def _csv(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
+    raw = os.environ.get(name)
+    if not raw:
+        return default
+    return tuple(part.strip().lower() for part in raw.split(",") if part.strip())
 
 
 def load_config() -> MirrorConfig:
@@ -191,6 +223,30 @@ def load_config() -> MirrorConfig:
         face_match_tolerance=_env_float("MIRROR_FACE_MATCH_TOLERANCE", 0.48),
         show_health_when_idle=_env_bool_or_setting("MIRROR_SHOW_HEALTH_WHEN_IDLE", "show_health_when_idle", True),
         show_diagnostics=_env_bool_or_setting("MIRROR_SHOW_DIAGNOSTICS", "show_diagnostics", False),
+        http_host=os.environ.get("MIRROR_HTTP_HOST", "localhost"),
+        http_port=_env_int("MIRROR_HTTP_PORT", 8000),
+        demo=_env_bool("MIRROR_DEMO", False),
+        assistant_name=str(_env_or_setting("MIRROR_ASSISTANT_NAME", "assistant_name", "Mirror")),
+        wake_words=_csv("MIRROR_WAKE_WORDS", MirrorConfig.wake_words),
+        follow_up_window_seconds=_env_float_or_setting("MIRROR_FOLLOW_UP_WINDOW", "follow_up_window_seconds", 12.0),
+        allowed_origins=_csv("MIRROR_ALLOWED_ORIGINS", ()),
+        default_wake_time=str(_env_or_setting("MIRROR_WAKE_TIME", "default_wake_time", "07:00")),
+        default_bed_time=str(_env_or_setting("MIRROR_BED_TIME", "default_bed_time", "23:00")),
+        proactive=_env_bool_or_setting("MIRROR_PROACTIVE", "proactive", True),
+        quiet_nudge_gap_seconds=_env_float_or_setting("MIRROR_NUDGE_GAP", "quiet_nudge_gap_seconds", 240.0),
+        tts_provider=str(_env_or_setting("MIRROR_TTS", "tts_provider", "auto")).strip().lower(),
+        edge_voice=str(_env_or_setting("MIRROR_EDGE_VOICE", "edge_voice", "en-IN-NeerjaNeural")),
+        tts_rate=_env_int_or_setting("MIRROR_TTS_RATE", "tts_rate", 150),
+        llm_timeout_seconds=_env_float("MIRROR_LLM_TIMEOUT", 12.0),
+        groq_vision_model=os.environ.get("GROQ_VISION_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct"),
+        openai_api_key=os.environ.get("OPENAI_API_KEY", ""),
+        home_assistant_url=os.environ.get("HOME_ASSISTANT_URL", "").rstrip("/"),
+        home_assistant_token=os.environ.get("HOME_ASSISTANT_TOKEN", ""),
+        privacy_on_start=_env_bool_or_setting("MIRROR_PRIVACY_ON_START", "privacy_on_start", False),
+        face_backend=str(_env_or_setting("MIRROR_FACE_BACKEND", "face_backend", "auto")).strip().lower(),
+        models_dir=_path_from_env("MIRROR_MODELS_DIR", data_dir / "models"),
+        auto_learn_faces=_env_bool_or_setting("MIRROR_AUTO_LEARN_FACES", "auto_learn_faces", True),
+        units=str(_env_or_setting("MIRROR_UNITS", "units", "metric")).strip().lower(),
     )
 
 

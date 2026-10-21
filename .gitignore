@@ -11,3 +11,9 @@ backend/data/*.db
 backend/data/.spotify_cache
 backend/data/known_faces/*
 smart-mirror-ui-smoke.png
+
+# Local state and downloaded models
+backend/data/
+!backend/data/.gitkeep
+.pytest_cache/
+*.log
